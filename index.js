@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 const port = process.env.PORT || 7007;
 
@@ -205,6 +205,20 @@ app.post('/bookings', async (req, res) => {
     }
 })
 
+app.get('/users', async (req, res) => {
+    try {
+        const query = {};
+        const users = await usersCollection.find(query).toArray();
+        res.send(users);
+
+    } catch (error) {
+        res.send({
+            success: false,
+            error: error.message
+        })
+    }
+})
+
 app.post('/users', async (req, res) => {
     try {
         const user = req.body;
@@ -217,6 +231,26 @@ app.post('/users', async (req, res) => {
             error: error.message
         })
     }
+})
+
+app.put('/users/admin/:id', verifyJWT, async (req, res) => {
+    const decodedEmail = req.decoded.email;
+    const user = await usersCollection.findOne({ email: decodedEmail });
+    if (user?.role !== 'admin') {
+        return res.status(403).send({ message: 'Forbidden Access' });
+    }
+
+    const id = req.params.id;
+    const filter = { _id: ObjectId(id) };
+    const option = { upsert: true };
+
+    const updatedDoc = {
+        $set: {
+            role: 'admin'
+        }
+    }
+    const result = await usersCollection.updateOne(filter, updatedDoc, option);
+    res.send(result);
 })
 
 // ---------Json Web Token Generate---------
