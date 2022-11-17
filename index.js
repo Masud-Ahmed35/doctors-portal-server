@@ -28,6 +28,7 @@ dbConnect();
 // ------------Collections----------
 const appointmentCollection = client.db('doctorsPortal').collection('appointmentOptions');
 const bookingCollection = client.db('doctorsPortal').collection('bookings');
+const usersCollection = client.db('doctorsPortal').collection('users');
 
 // ------------End Points------------
 
@@ -138,6 +139,22 @@ app.get('/v2/appointmentOptions', async (req, res) => {
     }
 })
 
+app.get('/bookings', async (req, res) => {
+    try {
+        const email = req.query.email;
+        const query = { email: email }
+
+        const bookings = await bookingCollection.find(query).toArray();
+        res.send(bookings)
+
+    } catch (error) {
+        res.send({
+            success: false,
+            error: error.message
+        })
+    }
+})
+
 app.post('/bookings', async (req, res) => {
     try {
         const booking = req.body;
@@ -154,6 +171,20 @@ app.post('/bookings', async (req, res) => {
         }
 
         const data = await bookingCollection.insertOne(booking);
+        res.send(data);
+
+    } catch (error) {
+        res.send({
+            success: false,
+            error: error.message
+        })
+    }
+})
+
+app.post('/users', async (req, res) => {
+    try {
+        const user = req.body;
+        const data = await usersCollection.insertOne(user);
         res.send(data);
 
     } catch (error) {
