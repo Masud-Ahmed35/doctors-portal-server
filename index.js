@@ -50,6 +50,16 @@ const bookingCollection = client.db('doctorsPortal').collection('bookings');
 const usersCollection = client.db('doctorsPortal').collection('users');
 const doctorsCollection = client.db('doctorsPortal').collection('doctors');
 
+const verifyAdmin = async (req, res, next) => {
+    const decodedEmail = req.decoded.email;
+    const user = await usersCollection.findOne({ email: decodedEmail });
+
+    if (user?.role !== 'admin') {
+        return res.status(403).send({ message: 'Forbidden Access' });
+    }
+    next();
+}
+
 // ------------End Points------------
 
 // ---------Root End-Points-----------
@@ -68,7 +78,7 @@ app.get('/', (req, res) => {
 })
 // -----------------------------------------------
 
-app.get('/manageDoctors', async (req, res) => {
+app.get('/manageDoctors', verifyJWT, verifyAdmin, async (req, res) => {
     try {
         const doctors = await doctorsCollection.find({}).toArray();
         res.send(doctors);
@@ -81,10 +91,24 @@ app.get('/manageDoctors', async (req, res) => {
     }
 })
 
-app.post('/addDoctors', async (req, res) => {
+app.post('/addDoctors', verifyJWT, verifyAdmin, async (req, res) => {
     try {
         const doctor = req.body;
         const result = await doctorsCollection.insertOne(doctor);
+        res.send(result);
+
+    } catch (error) {
+        res.send({
+            success: false,
+            error: error.message
+        })
+    }
+})
+
+app.delete('/deleteDoctor/:id', verifyJWT, verifyAdmin, async (req, res) => {
+    try {
+        const id = req.params.id;
+        const result = await doctorsCollection.deleteOne({ _id: ObjectId(id) })
         res.send(result);
 
     } catch (error) {
@@ -282,13 +306,7 @@ app.post('/users', async (req, res) => {
     }
 })
 
-app.put('/users/admin/:id', verifyJWT, async (req, res) => {
-    const decodedEmail = req.decoded.email;
-    const user = await usersCollection.findOne({ email: decodedEmail });
-    if (user?.role !== 'admin') {
-        return res.status(403).send({ message: 'Forbidden Access' });
-    }
-
+app.put('/users/admin/:id', verifyJWT, verifyAdmin, async (req, res) => {
     const id = req.params.id;
     const filter = { _id: ObjectId(id) };
     const option = { upsert: true };
