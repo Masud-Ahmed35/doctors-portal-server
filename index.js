@@ -48,6 +48,7 @@ dbConnect();
 const appointmentCollection = client.db('doctorsPortal').collection('appointmentOptions');
 const bookingCollection = client.db('doctorsPortal').collection('bookings');
 const usersCollection = client.db('doctorsPortal').collection('users');
+const doctorsCollection = client.db('doctorsPortal').collection('doctors');
 
 // ------------End Points------------
 
@@ -66,6 +67,33 @@ app.get('/', (req, res) => {
     }
 })
 // -----------------------------------------------
+
+app.get('/manageDoctors', async (req, res) => {
+    try {
+        const doctors = await doctorsCollection.find({}).toArray();
+        res.send(doctors);
+
+    } catch (error) {
+        res.send({
+            success: false,
+            error: error.message
+        })
+    }
+})
+
+app.post('/addDoctors', async (req, res) => {
+    try {
+        const doctor = req.body;
+        const result = await doctorsCollection.insertOne(doctor);
+        res.send(result);
+
+    } catch (error) {
+        res.send({
+            success: false,
+            error: error.message
+        })
+    }
+})
 
 app.get('/appointmentOptions', async (req, res) => {
     try {
@@ -149,6 +177,20 @@ app.get('/v2/appointmentOptions', async (req, res) => {
             }
         ]).toArray();
         res.send(options);
+
+    } catch (error) {
+        res.send({
+            success: false,
+            error: error.message
+        })
+    }
+})
+
+// Specialty API
+app.get('/specialty', async (req, res) => {
+    try {
+        const result = await appointmentCollection.find({}).project({ name: 1 }).toArray();
+        res.send(result);
 
     } catch (error) {
         res.send({
