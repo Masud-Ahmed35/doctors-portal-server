@@ -3,6 +3,7 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const port = process.env.PORT || 7007;
 
 const app = express();
@@ -245,6 +246,21 @@ app.get('/bookings', verifyJWT, async (req, res) => {
     }
 })
 
+app.get('/bookings/:id', async (req, res) => {
+    try {
+        const id = req.params.id;
+        const query = { _id: ObjectId(id) };
+        const data = await bookingCollection.findOne(query);
+        res.send(data);
+
+    } catch (error) {
+        res.send({
+            success: false,
+            error: error.message
+        })
+    }
+})
+
 app.post('/bookings', async (req, res) => {
     try {
         const booking = req.body;
@@ -306,6 +322,7 @@ app.post('/users', async (req, res) => {
     }
 })
 
+// ------------Update Admin Role-------------
 app.put('/users/admin/:id', verifyJWT, verifyAdmin, async (req, res) => {
     const id = req.params.id;
     const filter = { _id: ObjectId(id) };
@@ -318,6 +335,52 @@ app.put('/users/admin/:id', verifyJWT, verifyAdmin, async (req, res) => {
     }
     const result = await usersCollection.updateOne(filter, updatedDoc, option);
     res.send(result);
+})
+
+
+//  Add Price After development
+// app.get('/addPrice', async (req, res) => {
+//     try {
+//         const filter = {};
+//         const options = { upsert: true }
+//         const updatedDoc = {
+//             $set: {
+//                 price: 99
+//             }
+//         }
+//         const result = await appointmentCollection.updateMany(filter, updatedDoc, options);
+//         res.send(result);
+
+//     } catch (error) {
+//         res.send({
+//             success: false,
+//             error: error.message
+//         })
+//     }
+// })
+
+// Payment GateWay Api
+app.post('/create-payment-intent', async (req, res) => {
+    try {
+        const booking = req.body;
+        const price = booking.price;
+        const amount = price * 100;
+
+        const paymentIntent = await stripe.paymentIntents.create({
+            currency: 'usd',
+            amount: amount,
+            "payment_method_types": ["card"],
+        });
+        res.send({
+            clientSecret: paymentIntent.client_secret,
+        });
+
+    } catch (error) {
+        res.send({
+            success: false,
+            error: error.message
+        })
+    }
 })
 
 // ---------Json Web Token Generate---------
